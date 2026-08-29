@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as analysis from "../analysis.js";
 import type * as claims from "../claims.js";
 import type * as evidence from "../evidence.js";
 import type * as http from "../http.js";
@@ -22,6 +23,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analysis: typeof analysis;
   claims: typeof claims;
   evidence: typeof evidence;
   http: typeof http;

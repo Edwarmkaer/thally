@@ -82,3 +82,8 @@ export const listBySession = query({
       .collect();
   },
 });
+
+export const getById = query({
+  args: { claimId: v.id("claims") },
+  handler: (ctx, args) => ctx.db.get(args.claimId),
+});
