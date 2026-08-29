@@ -1,34 +1,51 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-/** Afirmaciones de una sesión, en el orden en que se dijeron. */
-export const listBySession = query({
-  args: { sessionId: v.id("sessions") },
-  handler: (ctx, { sessionId }) =>
-    ctx.db
-      .query("claims")
-      .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
-      .collect(),
-});
-
-/** Registra una afirmación detectada en el contenido hablado. */
-export const add = mutation({
+export const registerClaim = mutation({
   args: {
     sessionId: v.id("sessions"),
+    transcriptId: v.optional(v.id("transcripts")),
     text: v.string(),
-    quote: v.string(),
+    quote: v.optional(v.string()),
     atMs: v.number(),
-    needsContext: v.optional(v.boolean()),
   },
-  handler: (ctx, { needsContext, ...claim }) =>
-    ctx.db.insert("claims", {
-      ...claim,
-      status: needsContext ? "needs_context" : "pending",
-    }),
+  handler: async (ctx, args) => {
+    const text = args.text.trim();
+    if (text === "") {
+      throw new Error("text cannot be empty");
+    }
+
+    if (args.atMs < 0) {
+      throw new Error("atMs cannot be negative");
+    }
+
+    const claimId = await ctx.db.insert("claims", {
+      sessionId: args.sessionId,
+      transcriptId: args.transcriptId,
+      text,
+      quote: args.quote,
+      atMs: args.atMs,
+      status: "searching",
+    });
+
+    return claimId;
+  },
 });
 
-/** Adjunta la verificación cuando la evidencia queda disponible. */
-export const recordVerification = mutation({
+/** La afirmación no identifica con suficiente precisión qué debe contrastarse (CONTEXT.md). */
+export const markNeedsContext = mutation({
+  args: { claimId: v.id("claims") },
+  handler: async (ctx, args) => {
+    const claim = await ctx.db.get(args.claimId);
+    if (claim === null) {
+      throw new Error("claim not found");
+    }
+
+    await ctx.db.patch(args.claimId, { status: "needs_context" });
+  },
+});
+
+export const completeClaim = mutation({
   args: {
     claimId: v.id("claims"),
     support: v.union(
@@ -36,12 +53,33 @@ export const recordVerification = mutation({
       v.literal("disputed"),
       v.literal("unsupported"),
     ),
-    summary: v.string(),
-    sources: v.array(v.object({ title: v.string(), url: v.string() })),
+    explanation: v.string(),
   },
-  handler: (ctx, { claimId, ...verification }) =>
-    ctx.db.patch(claimId, {
+  handler: async (ctx, args) => {
+    const claim = await ctx.db.get(args.claimId);
+    if (claim === null) {
+      throw new Error("claim not found");
+    }
+
+    await ctx.db.patch(args.claimId, {
       status: "checked",
-      verification: { ...verification, checkedAt: Date.now() },
-    }),
+      support: args.support,
+      explanation: args.explanation,
+    });
+  },
+});
+
+export const listBySession = query({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    const claims = await ctx.db
+      .query("claims")
+      .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    claims.sort((a, b) => a.atMs - b.atMs);
+    return claims;
+  },
 });

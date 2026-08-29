@@ -9,7 +9,10 @@
  */
 
 import type * as claims from "../claims.js";
+import type * as evidence from "../evidence.js";
+import type * as http from "../http.js";
 import type * as sessions from "../sessions.js";
+import type * as transcripts from "../transcripts.js";
 
 import type {
   ApiFromModules,
@@ -19,7 +22,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   claims: typeof claims;
+  evidence: typeof evidence;
+  http: typeof http;
   sessions: typeof sessions;
+  transcripts: typeof transcripts;
 }>;
 
 /**
