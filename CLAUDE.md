@@ -27,9 +27,23 @@ Ver `obsidian/README.md` antes de crear notas.
 
 ## Equipo
 
-**Dueño por vertical, no por capa.** Cada quien es dueño de un camino completo (ingesta del
-contenido hablado · verificación y evidencia · acompañante) en vez de "el del backend" y "el del
-frontend". Así dos personas casi nunca tocan el mismo archivo.
+**Dueño por vertical, no por capa.** Cada quien es dueño de un camino completo en vez de "el del
+backend" y "el del frontend". Así dos personas casi nunca tocan el mismo archivo. Somos cinco:
+
+- **Valeria** — ingesta del contenido hablado: transcripción en vivo con ElevenLabs.
+- **Harold** — verificación y evidencia: `convex/schema.ts`, `claims`, las fuentes.
+- **Miguel** — el acompañante: frontend.
+- **Francisco** — uso validado: usuarios reales usando thally hoy, y la data que lo demuestre.
+- **Edward** — deploy público y entrega: submit, ficha en Vibe Apps, pitch.
+
+**Los dos criterios que no son código también tienen dueño.** La rúbrica da 25% a uso validado
+("usuario concreto, problema real y data recogida hoy") y 10% al pitch, 3 minutos para contarlo
+y 3 para defenderlo. Sin dueño se hacen a las 19:40, y se hacen mal.
+
+**La costura entre ingesta y verificación se acuerda, no se improvisa.** La transcripción en vivo
+entrega texto parcial que todavía se corrige solo; una afirmación creada sobre texto no confirmado
+produce claims duplicadas y citas mal recortadas. Quién decide que un fragmento está listo para
+`claims.add` —y con qué criterio— es decisión de modelo: va como ADR en `obsidian/decisions/`.
 
 **`convex/schema.ts` tiene un solo dueño.** Es el único archivo donde todos chocan. Cambiar el
 schema se avisa antes de abrir el PR, y los campos nuevos entran como `v.optional(...)`: los
@@ -40,11 +54,19 @@ obligatoria. Si un PR lleva más de un par de horas de trabajo, se parte en dos.
 
 **`main` siempre desplegable.** Ramas cortas, nada de ramas largas de días.
 
+**Requisito de entrega, no criterio de rúbrica:** el proyecto usa Convex (ya cumplido) y **se
+registra en Vibe Apps antes del cierre**. El submit en `vibeapps.dev/submit` pide título,
+tagline, **link a la app funcionando** y nombre; pide cuenta, así que se crea antes. El tag
+**`thenextcrafthackathon`** está oculto —solo sale al escribir "craft" en el buscador de tags— y
+es lo que amarra el submit al evento. Sin él se publica en el directorio general y el organizador
+no tiene cómo encontrarnos.
+
 **Quién destraba qué** (mientras siga pendiente):
-- Edward — instalar la GitHub App de Vercel en el repo para tener previews por PR.
-- Francisco — deployment de producción de Convex + `CONVEX_DEPLOY_KEY`; hoy prod escribe en el
-  deployment dev.
-- Harold — proyecto de Vercel (`dropout-capital/thally`) y sus env vars.
+- Edward — deploy público del frontend. No es infra opcional: es el "App Website Link"
+  obligatorio del submit, así que bloquea el requisito de entrega.
+- Harold — `convex login` para generar `convex/_generated/` y dejar el CI verde.
+- Soltado a propósito: el deployment de **producción** de Convex. El deployment dev alcanza para
+  demostrar y no da puntos; se retoma después del evento.
 
 **Qué se documenta durante la hackathon:** solo las decisiones que cambian el modelo, como ADR en
 `obsidian/decisions/`. El resto se conversa y se sigue.
