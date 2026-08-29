@@ -10,7 +10,8 @@
     "start": "next start",
     "test": "vitest",
     "test:once": "vitest run",
-    "test:scribe-realtime": "tsx scripts/test-scribe-realtime.ts"
+    "test:scribe-realtime": "tsx scripts/test-scribe-realtime.ts",
+    "web": "tsx scripts/web-realtime.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.8.3",
