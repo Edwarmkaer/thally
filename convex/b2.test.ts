@@ -413,8 +413,10 @@ describe("B2 Convex functions", () => {
     ).rejects.toThrow();
 
     await expect(
-      // @ts-expect-error title is required
-      t.mutation(api.sessions.createSession, {}),
+      t.mutation(
+        api.sessions.createSession,
+        {} as { title: string },
+      ),
     ).rejects.toThrow();
 
     const deletedClaim = await t.mutation(api.claims.registerClaim, {
