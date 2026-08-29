@@ -8,7 +8,9 @@ export default defineSchema({
       v.literal("active"),
       v.literal("finished")
     ),
-  }),
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+  }).index("by_status", ["status"]),
 
   transcripts: defineTable({
     sessionId: v.id("sessions"),
