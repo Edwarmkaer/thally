@@ -12,7 +12,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 type ClaimRow = {
   _id: Id<"claims">;
   status: string;
-  verdict?: "supported" | "disputed" | "insufficient_evidence";
+  support?: "supported" | "disputed" | "unsupported";
   text: string;
 };
 
@@ -180,7 +180,7 @@ describe("B4 realtime + B5 HTTP", () => {
     const claimId = await client.mutation(api.claims.registerClaim, {
       sessionId,
       text: "El sol es una estrella",
-      timestamp: 1,
+      atMs: 1,
     });
 
     const feed = subscribeClaims(client, sessionId);
@@ -198,7 +198,7 @@ describe("B4 realtime + B5 HTTP", () => {
 
     await client.mutation(api.claims.completeClaim, {
       claimId,
-      verdict: "disputed",
+      support: "disputed",
       explanation: "No corresponde al claim de prueba.",
     });
 
@@ -206,14 +206,14 @@ describe("B4 realtime + B5 HTTP", () => {
       claims.some(
         (claim) =>
           claim._id === claimId &&
-          claim.status === "completed" &&
-          claim.verdict === "disputed",
+          claim.status === "checked" &&
+          claim.support === "disputed",
       ),
     );
     const updated = completedClaims.find((claim) => claim._id === claimId);
     expect(updated).toMatchObject({
-      status: "completed",
-      verdict: "disputed",
+      status: "checked",
+      support: "disputed",
     });
     expect(feed.snapshots.length).toBeGreaterThan(snapshotsAfterSearching);
     feed.unsubscribe();
@@ -223,7 +223,7 @@ describe("B4 realtime + B5 HTTP", () => {
     const result = await postAgent("/agent/register-claim", {
       sessionId: "skip",
       text: "x",
-      timestamp: 0,
+      atMs: 0,
     });
     expect(result.status).toBe(401);
   });
@@ -231,7 +231,7 @@ describe("B4 realtime + B5 HTTP", () => {
   test("B5 HTTP 2: register-claim with wrong Bearer token returns 401", async () => {
     const result = await postAgent(
       "/agent/register-claim",
-      { sessionId: "skip", text: "x", timestamp: 0 },
+      { sessionId: "skip", text: "x", atMs: 0 },
       "Bearer definitely-not-the-webhook-secret",
     );
     expect(result.status).toBe(401);
@@ -240,7 +240,7 @@ describe("B4 realtime + B5 HTTP", () => {
   test("B5 HTTP 3: valid auth and invalid body returns 400", async () => {
     const result = await postAgent(
       "/agent/register-claim",
-      { text: "missing session and timestamp" },
+      { text: "missing session and atMs" },
       `Bearer ${webhookSecret}`,
     );
     expect(result.status).toBe(400);
@@ -257,7 +257,7 @@ describe("B4 realtime + B5 HTTP", () => {
       {
         sessionId,
         text: "Peru tiene mas de 50 millones de habitantes.",
-        timestamp: 2,
+        atMs: 2,
       },
       `Bearer ${webhookSecret}`,
     );
@@ -278,7 +278,7 @@ describe("B4 realtime + B5 HTTP", () => {
       "/agent/complete-claim",
       {
         claimId,
-        verdict: "disputed",
+        support: "disputed",
         explanation: "La poblacion es menor a 50 millones.",
       },
       `Bearer ${webhookSecret}`,
@@ -290,8 +290,8 @@ describe("B4 realtime + B5 HTTP", () => {
     const after = await client.query(api.claims.listBySession, { sessionId });
     expect(after[0]).toMatchObject({
       _id: claimId,
-      status: "completed",
-      verdict: "disputed",
+      status: "checked",
+      support: "disputed",
     });
   });
 
@@ -309,7 +309,7 @@ describe("B4 realtime + B5 HTTP", () => {
       {
         sessionId,
         text: "El agua hierve a 100 C al nivel del mar.",
-        timestamp: 3,
+        atMs: 3,
       },
       `Bearer ${webhookSecret}`,
     );
@@ -330,7 +330,7 @@ describe("B4 realtime + B5 HTTP", () => {
       "/agent/complete-claim",
       {
         claimId,
-        verdict: "disputed",
+        support: "disputed",
         explanation: "Veredicto de prueba via HTTP.",
       },
       `Bearer ${webhookSecret}`,
@@ -341,15 +341,15 @@ describe("B4 realtime + B5 HTTP", () => {
       claims.some(
         (claim) =>
           claim._id === claimId &&
-          claim.status === "completed" &&
-          claim.verdict === "disputed",
+          claim.status === "checked" &&
+          claim.support === "disputed",
       ),
     );
     expect(
       completedClaims.find((claim) => claim._id === claimId),
     ).toMatchObject({
-      status: "completed",
-      verdict: "disputed",
+      status: "checked",
+      support: "disputed",
     });
     expect(feed.snapshots.length).toBeGreaterThan(snapshotsAfterSearching);
     feed.unsubscribe();

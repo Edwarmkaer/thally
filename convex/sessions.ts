@@ -13,7 +13,7 @@ export const createSession = mutation({
 
     const sessionId = await ctx.db.insert("sessions", {
       title,
-      status: "active",
+      status: "live",
       startedAt: Date.now(),
     });
 
@@ -28,12 +28,12 @@ export const endSession = mutation({
     if (session === null) {
       throw new Error("session not found");
     }
-    if (session.status === "finished") {
+    if (session.status === "ended") {
       return;
     }
 
     await ctx.db.patch(args.sessionId, {
-      status: "finished",
+      status: "ended",
       endedAt: Date.now(),
     });
   },
@@ -44,7 +44,7 @@ export const listLive = query({
   handler: (ctx) =>
     ctx.db
       .query("sessions")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .withIndex("by_status", (q) => q.eq("status", "live"))
       // La más reciente primero: la pantalla sigue la sesión que está corriendo ahora.
       .order("desc")
       .collect(),
