@@ -1,6 +1,6 @@
-import Link from "next/link"
 import { MonitorPlay, Pause } from "lucide-react"
 
+import { SiteNavbar } from "@/components/site/navbar"
 import { ThailyPanel } from "@/components/thaily/thaily-panel"
 import { LiveTranscript } from "@/components/transcript/live-transcript"
 import { Button } from "@/components/ui/button"
@@ -25,15 +25,7 @@ const backgroundSquares: Array<[number, number]> = [
 export function ThallyWorkspace() {
   return (
     <>
-      <header className="app-navbar">
-        <nav aria-label="Navegación principal">
-          <Link href="/" className="brand-logo" aria-label="Thally, inicio">
-            <span className="brand-letter" aria-hidden="true">T</span>
-            <span className="brand-wordmark">Thally</span>
-            <span className="brand-dash" aria-hidden="true" />
-          </Link>
-        </nav>
-      </header>
+      <SiteNavbar />
 
       <main className="workspace-shell">
         <GridPattern squares={backgroundSquares} className="workspace-pattern" />

@@ -51,3 +51,4 @@ obsidian/.trash/
 
 # material de demo (el clip se comparte fuera del repo)
 video.mp4
+.env.local
