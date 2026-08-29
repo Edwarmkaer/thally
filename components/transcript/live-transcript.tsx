@@ -44,7 +44,14 @@ export function LiveTranscript() {
           {segments.map((segment) => (
             <div className="transcript-segment" key={segment._id}>
               <time>{formatOffset(segment.startTime)}</time>
-              <p>{segment.text}</p>
+              <div>
+                <p>{segment.text}</p>
+                {/* Lo mismo en claro. Llega después del texto, así que aparece cuando
+                    está listo en vez de retrasar la transcripción. */}
+                {segment.paraphrase ? (
+                  <p className="transcript-paraphrase">{segment.paraphrase}</p>
+                ) : null}
+              </div>
             </div>
           ))}
         </AnimatedList>

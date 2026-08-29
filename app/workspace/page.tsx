@@ -1,9 +1,9 @@
-import { auth } from "@clerk/nextjs/server"
-
 import { ThallyWorkspace } from "@/components/thally-workspace"
 
-// Check por recurso, no por matcher en el proxy: es el patrón vigente de Clerk.
-export default async function WorkspacePage() {
-  await auth.protect()
+// Abierto a propósito: la demo se muestra abriendo el enlace, y obligar a registrarse
+// antes de ver la pantalla la mata. No hay datos por usuario todavía — la sesión en vivo
+// es una sola y global, así que no hay nada que aislar. Cuando existan sesiones por
+// cuenta, vuelve el `auth.protect()`.
+export default function WorkspacePage() {
   return <ThallyWorkspace />
 }
