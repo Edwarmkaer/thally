@@ -14,14 +14,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+<<<<<<< Updated upstream
   title: "thally",
   description: "thally",
+=======
+  title: "Thally — Verificación en vivo",
+  description: "Contenido, evidencia y respuestas en una sola vista.",
+>>>>>>> Stashed changes
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
