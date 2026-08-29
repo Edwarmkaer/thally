@@ -1,23 +1,30 @@
 "use client"
 
+import { useQuery } from "convex/react"
+
+import { api } from "@/convex/_generated/api"
 import { AnimatedList } from "@/components/ui/animated-list"
 
-const transcriptSegments = [
-  {
-    time: "00:27",
-    text: "La latencia de la transcripción sigue bajando mientras los modelos procesan audio en tiempo real.",
-  },
-  {
-    time: "00:31",
-    text: "Los agentes de voz redujeron sus costos durante el último año.",
-  },
-  {
-    time: "00:34",
-    text: "Y ojo con esto: la experiencia mejora cuando la respuesta conserva el contexto de lo que acabamos de escuchar.",
-  },
-]
+/** startTime llega en ms desde el inicio de la sesión. */
+function formatOffset(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const minutes = Math.floor(total / 60)
+  const seconds = total % 60
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
 
 export function LiveTranscript() {
+  // Mismo criterio que ThailyPanel: la pantalla sigue la sesión en vivo más reciente.
+  const liveSessions = useQuery(api.sessions.listLive)
+  const sessionId = liveSessions?.[0]?._id
+  const segments = useQuery(
+    api.transcripts.listBySession,
+    sessionId ? { sessionId } : "skip",
+  )
+
+  const loading = segments === undefined
+  const empty = !loading && segments.length === 0
+
   return (
     <section className="transcript" aria-labelledby="transcript-title">
       <div className="transcript-label">
@@ -26,14 +33,22 @@ export function LiveTranscript() {
         <small>Scribe v2 realtime</small>
       </div>
 
-      <AnimatedList className="transcript-stream" delay={850}>
-        {transcriptSegments.map((segment) => (
-          <div className="transcript-segment" key={segment.time}>
-            <time>{segment.time}</time>
-            <p>{segment.text}</p>
-          </div>
-        ))}
-      </AnimatedList>
+      {loading || empty ? (
+        <p className="transcript-empty" aria-live="polite">
+          {loading
+            ? "Conectando con la sesión…"
+            : "Todavía no hay nada transcrito de esta sesión."}
+        </p>
+      ) : (
+        <AnimatedList className="transcript-stream" delay={850}>
+          {segments.map((segment) => (
+            <div className="transcript-segment" key={segment._id}>
+              <time>{formatOffset(segment.startTime)}</time>
+              <p>{segment.text}</p>
+            </div>
+          ))}
+        </AnimatedList>
+      )}
     </section>
   )
 }

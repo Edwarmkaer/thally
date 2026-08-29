@@ -373,6 +373,7 @@ button:focus-visible, input:focus-visible {
   font-size: 0.85rem;
   opacity: 0.6;
 }
+.transcript-empty { padding: 14px 2px; color: var(--muted-foreground); font-size: 0.85rem; }
 /* --- Esquema (Excalidraw) --- */
 .diagram-view { display: flex; flex-direction: column; min-height: 0; height: 100%; gap: 10px; padding-bottom: 12px; }
 .diagram-switch { display: flex; gap: 6px; padding: 0 12px; flex-wrap: wrap; }
@@ -454,4 +455,16 @@ button:focus-visible, input:focus-visible {
 
 @media (max-width: 640px) {
   .landing-shell { padding: 0 18px 40px; }
+}
+
+/* --- Ingesta de contenido (vive en la barra del video, no debe empujar layout) --- */
+.ingest-collapsed, .ingest-open { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.ingest-open input {
+  width: clamp(140px, 22vw, 260px); height: 24px;
+  background: var(--card); font-size: 12px;
+}
+.ingest-status { color: var(--muted-foreground); font-size: 11px; white-space: nowrap; }
+.ingest-error {
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--destructive); font-size: 11px;
 }

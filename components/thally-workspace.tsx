@@ -2,6 +2,7 @@ import { MonitorPlay, Pause } from "lucide-react"
 
 import { SiteNavbar } from "@/components/site/navbar"
 import { ThailyPanel } from "@/components/thaily/thaily-panel"
+import { IngestSource } from "@/components/transcript/ingest-source"
 import { LiveTranscript } from "@/components/transcript/live-transcript"
 import { Button } from "@/components/ui/button"
 import { GridPattern } from "@/components/ui/grid-pattern"
@@ -42,7 +43,7 @@ export function ThallyWorkspace() {
             <div className="video-window">
               <div className="video-window-bar">
                 <span><MonitorPlay aria-hidden="true" /> Contenido en vivo</span>
-                <small>16:9</small>
+                <IngestSource />
               </div>
               <div className="video-frame">
                 <span className="video-live">Live</span>
