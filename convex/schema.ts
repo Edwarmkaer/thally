@@ -17,6 +17,9 @@ export default defineSchema({
   transcripts: defineTable({
     sessionId: v.id("sessions"),
     text: v.string(),
+    // Lo mismo dicho en claro, para seguir el contenido mientras ocurre. Opcional: el
+    // fragmento se escribe apenas se transcribe, y el parafraseo llega después.
+    paraphrase: v.optional(v.string()),
     startTime: v.number(),
     endTime: v.optional(v.number()),
   }).index("by_sessionId", ["sessionId"]),
@@ -53,9 +56,6 @@ export default defineSchema({
       ),
     ),
     explanation: v.optional(v.string()),
-    // Issue de GitHub abierta a partir de la afirmación. Presente = ya se abrió: es lo que
-    // evita duplicarla cuando el agente reintenta.
-    issueUrl: v.optional(v.string()),
     // by_sessionId lleva atMs para que las afirmaciones salgan en el orden en que se dijeron.
   }).index("by_sessionId", ["sessionId", "atMs"]),
 
