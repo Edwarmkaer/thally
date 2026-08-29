@@ -57,6 +57,49 @@ export const listByClaim = query({
   },
 });
 
+/**
+ * Adjunta las fuentes encontradas y cierra el estado de la afirmación en una sola
+ * transacción: N inserciones sueltas son N viajes de ida y vuelta desde la action, y
+ * dejan el orden de relevancia de la búsqueda al azar.
+ */
+export const attachEvidence = mutation({
+  args: {
+    claimId: v.id("claims"),
+    rows: v.array(
+      v.object({
+        title: v.string(),
+        url: v.string(),
+        source: v.string(),
+        excerpt: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const claim = await ctx.db.get(args.claimId);
+    if (claim === null) {
+      throw new Error("claim not found");
+    }
+
+    for (const row of args.rows) {
+      await ctx.db.insert("evidence", {
+        claimId: args.claimId,
+        title: row.title,
+        url: row.url,
+        source: row.source,
+        excerpt: row.excerpt,
+      });
+    }
+
+    // Sin una sola fuente no hay nada que contrastar: eso es "necesita contexto", no una
+    // verificación fallida (CONTEXT.md). Con fuentes, queda lista para evaluarlas.
+    await ctx.db.patch(args.claimId, {
+      status: args.rows.length === 0 ? "needs_context" : "analyzing",
+    });
+
+    return args.rows.length;
+  },
+});
+
 // --- Búsqueda de evidencia con Apify ---
 
 const APIFY_ENDPOINT =
@@ -122,11 +165,18 @@ export function toEvidenceRows(items: unknown, limit: number): EvidenceRow[] {
   return rows;
 }
 
+// El actor espera páginas lentas mucho más de lo que una sesión en vivo tolera. Devuelve lo
+// que alcanzó a recolectar cuando se le acaba el tiempo, así que un tope bajo cambia esperar
+// indefinido por traer dos fuentes en vez de tres.
+const APIFY_TIMEOUT_SECS = 20;
+// Margen sobre el tope del actor: si Apify deja de responder, la action corta igual.
+const FETCH_TIMEOUT_MS = (APIFY_TIMEOUT_SECS + 10) * 1000;
+
 /**
  * Busca evidencia para una afirmación y la deja adjunta.
  *
- * No se dispara sola al registrar una afirmación: cada corrida tarda ~17s y consume crédito
- * de Apify, así que quien orquesta decide cuándo llamarla.
+ * No se dispara sola al registrar una afirmación: cada corrida consume crédito de Apify y
+ * tarda segundos, así que quien orquesta decide cuándo llamarla.
  */
 export const searchEvidence = action({
   args: {
@@ -158,7 +208,13 @@ export const searchEvidence = action({
         maxResults,
         outputFormats: ["markdown"],
         scrapingTool: "raw-http",
+        requestTimeoutSecs: APIFY_TIMEOUT_SECS,
+        // Solo se guardan los primeros 500 caracteres del markdown: esperar a que cargue
+        // contenido dinámico paga una latencia que después se descarta.
+        dynamicContentWaitSecs: 0,
+        maxRequestRetries: 1,
       }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -167,16 +223,9 @@ export const searchEvidence = action({
 
     const rows = toEvidenceRows(await response.json(), maxResults);
 
-    for (const row of rows) {
-      await ctx.runMutation(api.evidence.addEvidence, {
-        claimId: args.claimId,
-        title: row.title,
-        url: row.url,
-        source: row.source,
-        excerpt: row.excerpt,
-      });
-    }
-
-    return rows.length;
+    return await ctx.runMutation(api.evidence.attachEvidence, {
+      claimId: args.claimId,
+      rows,
+    });
   },
 });
