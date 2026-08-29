@@ -1,0 +1,19 @@
+name: CI
+
+# La doc (obsidian/) va directo a main y no necesita build.
+on:
+  pull_request:
+    paths-ignore: ["obsidian/**", "**/*.md"]
+  push:
+    branches: [main]
+    paths-ignore: ["obsidian/**", "**/*.md"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run build
