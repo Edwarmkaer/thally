@@ -92,7 +92,9 @@ http.route({
 
     const sessionId = body.sessionId;
     const text = body.text;
-    const timestamp = body.timestamp;
+    // ponytail: `timestamp` es el nombre viejo del campo. Se acepta hasta que el agente
+    // envíe `atMs`; quitar el fallback cuando eso pase.
+    const atMs = body.atMs ?? body.timestamp;
     const transcriptId = body.transcriptId;
 
     if (typeof sessionId !== "string" || sessionId === "") {
@@ -101,7 +103,7 @@ http.route({
     if (typeof text !== "string") {
       return invalidPayload();
     }
-    if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) {
+    if (typeof atMs !== "number" || !Number.isFinite(atMs)) {
       return invalidPayload();
     }
     if (transcriptId !== undefined && typeof transcriptId !== "string") {
@@ -112,7 +114,7 @@ http.route({
       const claimId = await ctx.runMutation(api.claims.registerClaim, {
         sessionId: sessionId as Id<"sessions">,
         text,
-        timestamp,
+        atMs,
         ...(transcriptId === undefined
           ? {}
           : { transcriptId: transcriptId as Id<"transcripts"> }),
@@ -143,16 +145,20 @@ http.route({
     }
 
     const claimId = body.claimId;
-    const verdict = body.verdict;
+    // ponytail: `verdict` e `insufficient_evidence` son los nombres viejos; CONTEXT.md
+    // proscribe "veredicto". Se aceptan hasta que el agente envíe `support`/`unsupported`.
+    const rawSupport = body.support ?? body.verdict;
+    const support =
+      rawSupport === "insufficient_evidence" ? "unsupported" : rawSupport;
     const explanation = body.explanation;
 
     if (typeof claimId !== "string" || claimId === "") {
       return invalidPayload();
     }
     if (
-      verdict !== "supported" &&
-      verdict !== "disputed" &&
-      verdict !== "insufficient_evidence"
+      support !== "supported" &&
+      support !== "disputed" &&
+      support !== "unsupported"
     ) {
       return invalidPayload();
     }
@@ -163,7 +169,7 @@ http.route({
     try {
       await ctx.runMutation(api.claims.completeClaim, {
         claimId: claimId as Id<"claims">,
-        verdict,
+        support,
         explanation,
       });
 

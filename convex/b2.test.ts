@@ -23,7 +23,7 @@ describe("B2 Convex functions", () => {
     const session = await t.run(async (ctx) => ctx.db.get(sessionId));
     expect(session).toMatchObject({
       title: "Debate presidencial",
-      status: "active",
+      status: "live",
     });
     expect(session?._id).toEqual(sessionId);
   });
@@ -75,7 +75,7 @@ describe("B2 Convex functions", () => {
     expect(listed.some((row) => row.text.includes("otra session"))).toBe(false);
   });
 
-  test("C: registerClaim, listBySession, completeClaim persist only verdict fields", async () => {
+  test("C: registerClaim, listBySession, completeClaim persist only support fields", async () => {
     const t = setup();
 
     const sessionA = await t.mutation(api.sessions.createSession, {
@@ -95,12 +95,12 @@ describe("B2 Convex functions", () => {
       sessionId: sessionA,
       transcriptId,
       text: "  Peru tiene mas de 50 millones de habitantes.  ",
-      timestamp: 2,
+      atMs: 2,
     });
     const earlierClaimId = await t.mutation(api.claims.registerClaim, {
       sessionId: sessionA,
       text: "Claim anterior en el tiempo",
-      timestamp: 1,
+      atMs: 1,
     });
 
     const before = await t.query(api.claims.listBySession, {
@@ -112,10 +112,10 @@ describe("B2 Convex functions", () => {
       sessionId: sessionA,
       transcriptId,
       text: "Peru tiene mas de 50 millones de habitantes.",
-      timestamp: 2,
+      atMs: 2,
       status: "searching",
     });
-    expect(before[1].verdict).toBeUndefined();
+    expect(before[1].support).toBeUndefined();
     expect(before[1].explanation).toBeUndefined();
 
     const otherSessionClaims = await t.query(api.claims.listBySession, {
@@ -125,7 +125,7 @@ describe("B2 Convex functions", () => {
 
     await t.mutation(api.claims.completeClaim, {
       claimId,
-      verdict: "disputed",
+      support: "disputed",
       explanation: "La poblacion de Peru es menor a 50 millones.",
     });
 
@@ -143,21 +143,21 @@ describe("B2 Convex functions", () => {
       sessionId: sessionA,
       transcriptId,
       text: "Peru tiene mas de 50 millones de habitantes.",
-      timestamp: 2,
-      status: "completed",
-      verdict: "disputed",
+      atMs: 2,
+      status: "checked",
+      support: "disputed",
       explanation: "La poblacion de Peru es menor a 50 millones.",
     });
 
     const persisted = await t.run(async (ctx) => ctx.db.get(claimId));
     expect(persisted).toMatchObject({
-      status: "completed",
-      verdict: "disputed",
+      status: "checked",
+      support: "disputed",
       explanation: "La poblacion de Peru es menor a 50 millones.",
       sessionId: sessionA,
       transcriptId,
       text: "Peru tiene mas de 50 millones de habitantes.",
-      timestamp: 2,
+      atMs: 2,
     });
   });
 
@@ -170,12 +170,12 @@ describe("B2 Convex functions", () => {
     const claimA = await t.mutation(api.claims.registerClaim, {
       sessionId,
       text: "Claim A",
-      timestamp: 1,
+      atMs: 1,
     });
     const claimB = await t.mutation(api.claims.registerClaim, {
       sessionId,
       text: "Claim B",
-      timestamp: 2,
+      atMs: 2,
     });
 
     expect(
@@ -244,12 +244,12 @@ describe("B2 Convex functions", () => {
     const claimA = await t.mutation(api.claims.registerClaim, {
       sessionId: sessionA,
       text: "claim A",
-      timestamp: 1,
+      atMs: 1,
     });
     const claimB = await t.mutation(api.claims.registerClaim, {
       sessionId: sessionB,
       text: "claim B",
-      timestamp: 1,
+      atMs: 1,
     });
 
     await t.mutation(api.evidence.addEvidence, {
@@ -312,7 +312,7 @@ describe("B2 Convex functions", () => {
       sessionId,
       transcriptId,
       text: "El sol es una estrella",
-      timestamp: 1,
+      atMs: 1,
     });
     expect(await t.query(api.claims.listBySession, { sessionId })).toHaveLength(
       1,
@@ -329,13 +329,13 @@ describe("B2 Convex functions", () => {
 
     await t.mutation(api.claims.completeClaim, {
       claimId,
-      verdict: "supported",
+      support: "supported",
       explanation: "Consistente con astronomia.",
     });
 
     const [claim] = await t.query(api.claims.listBySession, { sessionId });
-    expect(claim.status).toBe("completed");
-    expect(claim.verdict).toBe("supported");
+    expect(claim.status).toBe("checked");
+    expect(claim.support).toBe("supported");
   });
 
   test("F: current validators reject empty/invalid args; missing docs follow existing guarantees", async () => {
@@ -346,7 +346,7 @@ describe("B2 Convex functions", () => {
     const claimId = await t.mutation(api.claims.registerClaim, {
       sessionId,
       text: "claim",
-      timestamp: 0,
+      atMs: 0,
     });
 
     await expect(
@@ -382,7 +382,7 @@ describe("B2 Convex functions", () => {
       t.mutation(api.claims.registerClaim, {
         sessionId,
         text: " ",
-        timestamp: 0,
+        atMs: 0,
       }),
     ).rejects.toThrow("text cannot be empty");
 
@@ -390,9 +390,9 @@ describe("B2 Convex functions", () => {
       t.mutation(api.claims.registerClaim, {
         sessionId,
         text: "ok",
-        timestamp: -5,
+        atMs: -5,
       }),
-    ).rejects.toThrow("timestamp cannot be negative");
+    ).rejects.toThrow("atMs cannot be negative");
 
     await expect(
       t.mutation(api.evidence.addEvidence, {
@@ -406,22 +406,21 @@ describe("B2 Convex functions", () => {
     await expect(
       t.mutation(api.claims.completeClaim, {
         claimId,
-        // @ts-expect-error invalid verdict is rejected by schema validators
-        verdict: "true",
+        // @ts-expect-error invalid support is rejected by schema validators
+        support: "true",
         explanation: "no",
       }),
     ).rejects.toThrow();
 
     await expect(
-      t.mutation(api.sessions.createSession, {
-        // @ts-expect-error title is required
-      }),
+      // @ts-expect-error title is required
+      t.mutation(api.sessions.createSession, {}),
     ).rejects.toThrow();
 
     const deletedClaim = await t.mutation(api.claims.registerClaim, {
       sessionId,
       text: "to delete",
-      timestamp: 3,
+      atMs: 3,
     });
     await t.run(async (ctx) => {
       await ctx.db.delete(deletedClaim);
@@ -429,7 +428,7 @@ describe("B2 Convex functions", () => {
     await expect(
       t.mutation(api.claims.completeClaim, {
         claimId: deletedClaim,
-        verdict: "supported",
+        support: "supported",
         explanation: "gone",
       }),
     ).rejects.toThrow("claim not found");
