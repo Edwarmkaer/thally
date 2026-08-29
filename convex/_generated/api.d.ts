@@ -12,7 +12,6 @@ import type * as analysis from "../analysis.js";
 import type * as claims from "../claims.js";
 import type * as evidence from "../evidence.js";
 import type * as http from "../http.js";
-import type * as issues from "../issues.js";
 import type * as sessions from "../sessions.js";
 import type * as transcripts from "../transcripts.js";
 
@@ -27,7 +26,6 @@ declare const fullApi: ApiFromModules<{
   claims: typeof claims;
   evidence: typeof evidence;
   http: typeof http;
-  issues: typeof issues;
   sessions: typeof sessions;
   transcripts: typeof transcripts;
 }>;
