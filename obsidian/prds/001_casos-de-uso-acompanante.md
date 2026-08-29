@@ -1,7 +1,8 @@
 ---
 type: prd
 number: 1
-status: draft
+status: in_progress
+status_detail: backend en main y desplegado; falta la UI y el detector
 priority: P0
 domain: producto
 owner: Harold
@@ -68,21 +69,26 @@ del venue, de que alguien hable a tiempo y de que la transcripción acierte en e
 
 ## Plan de implementacion
 
-1. Audio del micrófono o del clip → transcripción en streaming.
-2. Transcripción → detección de afirmaciones → `claims.add`.
-3. Afirmación → búsqueda de evidencia → `claims.recordVerification`.
-4. Vista única: contenido, transcripción, afirmaciones y Thaily.
+1. Audio del micrófono o del clip → transcripción en streaming con **ElevenLabs Scribe**.
+   Listo: `scripts/test-scribe-realtime.ts`.
+2. Transcripción → `transcripts.appendTranscript`. Listo.
+3. Detección de afirmaciones → `claims.registerClaim`, vía el webhook autenticado de
+   `convex/http.ts`. La ingesta está lista; **falta el detector que decide qué es verificable**.
+4. Búsqueda de evidencia → `evidence.addEvidence` y `claims.completeClaim`. La escritura está
+   lista; **falta quien busque**.
+5. Vista única: contenido, transcripción, afirmaciones y Thaily. **Pendiente**, avanza en
+   `frontend/thaily-agent`.
 
 > [!info] Pendiente de definir
-> - Proveedor de transcripción en streaming.
-> - Si Thaily responde solo por texto o también por voz. Hoy nada en la documentación exige voz.
+> - Si Thaily responde solo por texto o también por voz. Hoy nada en la documentación exige voz,
+>   y el schema tampoco la necesita.
 > - Qué clip se usa en la demo.
 
 ## Metricas de exito
 
 - Una afirmación pasa de dicha a evidencia visible mientras el contenido sigue corriendo.
-- La mayoría de las afirmaciones detectadas termina con fuente adjunta o marcada como
-  *necesita contexto*; ninguna queda colgada en `pending`.
+- La mayoría de las afirmaciones detectadas termina en `checked` con evidencia adjunta, o
+  marcada como `needs_context`; ninguna queda colgada en `searching` o `analyzing`.
 - La demo corre tres veces seguidas con el mismo resultado.
 
 ## Riesgos
@@ -90,11 +96,13 @@ del venue, de que alguien hable a tiempo y de que la transcripción acierte en e
 - **Detección de más.** Marcar opiniones o predicciones como afirmaciones verificables rompe la
   confianza más rápido que no detectar nada.
 - **Verificación que suena a veredicto.** `CONTEXT.md` es explícito: evaluación provisional, no
-  verdad. El copy y la UI tienen que sostenerlo.
+  verdad. Atacado en el modelo — el campo se llama `support`, no `verdict` — pero el copy y la UI
+  todavía tienen que sostenerlo.
 - **Latencia acumulada.** Transcripción, detección y búsqueda en cadena; si el total supera el
   ritmo del habla, el acompañante llega tarde y deja de acompañar.
-- **Documentación dispersa.** `PRODUCT.md` y `CONTEXT.md` viven en `origin/frontend/thaily-agent`,
-  no en `main`.
+- ~~**Documentación dispersa.**~~ Resuelto: `PRODUCT.md` y `CONTEXT.md` están en `main`.
+- **El agente todavía envía los nombres viejos.** El webhook acepta `timestamp`/`verdict` además de
+  `atMs`/`support` para no romperlo. Es deuda con fecha de retiro, no una decisión.
 
 > [!info] Falta la rúbrica de la hackathon
 > Este PRD se escribió sin los criterios de puntuación ni la fecha límite. Con la rúbrica en mano
