@@ -53,9 +53,6 @@ export default defineSchema({
       ),
     ),
     explanation: v.optional(v.string()),
-    // Issue de GitHub abierta a partir de la afirmación. Presente = ya se abrió: es lo que
-    // evita duplicarla cuando el agente reintenta.
-    issueUrl: v.optional(v.string()),
     // by_sessionId lleva atMs para que las afirmaciones salgan en el orden en que se dijeron.
   }).index("by_sessionId", ["sessionId", "atMs"]),
 
