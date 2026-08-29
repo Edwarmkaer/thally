@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local codebase analysis artifacts
+/graphify-out/
+
 # obsidian
 obsidian/.obsidian/workspace.json
 obsidian/.obsidian/workspace-mobile.json
@@ -48,3 +51,8 @@ obsidian/.trash/
 
 # material de demo (el clip se comparte fuera del repo)
 video.mp4
+.env.local
+.gstack/
+
+# log del dev server (se coló en un commit)
+dev.log
