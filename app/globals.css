@@ -285,3 +285,9 @@ button:focus-visible, input:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+.claim-empty {
+  padding: 18px 4px;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}

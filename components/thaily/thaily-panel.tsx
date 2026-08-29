@@ -4,6 +4,9 @@ import { FormEvent, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { FileCheck2, Mic, Send, Sparkles } from "lucide-react"
 
+import { useQuery } from "convex/react"
+
+import { api } from "@/convex/_generated/api"
 import { ThailyAgent, type ThailyStatus } from "@/components/thaily/thaily-agent"
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern"
 import { Button } from "@/components/ui/button"
@@ -16,26 +19,52 @@ type Message = {
   text: string
 }
 
-const claims = [
-  {
-    time: "00:34",
-    title: "Los agentes de voz redujeron sus costos durante el último año",
-    detail: "Buscando una fuente primaria que sostenga el porcentaje mencionado.",
-    status: "Verificando",
-  },
-  {
-    time: "00:24",
-    title: "ElevenLabs Scribe v2 Realtime",
-    detail: "Producto mencionado durante la explicación del flujo de transcripción.",
-    status: "2 fuentes",
-  },
-  {
-    time: "00:15",
-    title: "Convex",
-    detail: "Plataforma utilizada como backend reactivo durante la demostración.",
-    status: "Verificado",
-  },
-]
+/** Offset en ms desde el inicio de la sesión → mm:ss. */
+function formatTime(atMs: number) {
+  const totalSeconds = Math.max(0, Math.floor(atMs / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
+
+// El copy sigue CONTEXT.md: una verificación acompaña una decisión, no declara una verdad.
+const supportCopy = {
+  supported: "Se sostiene",
+  disputed: "En disputa",
+  unsupported: "Sin respaldo",
+} as const
+
+const statusFallback = {
+  detected: "Detectada",
+  searching: "Buscando evidencia",
+  analyzing: "Analizando fuentes",
+  needs_context: "Necesita contexto",
+  checked: "Verificada",
+} as const
+
+type ClaimRow = {
+  _id: string
+  atMs: number
+  text: string
+  status: keyof typeof statusFallback
+  support?: keyof typeof supportCopy
+  explanation?: string
+}
+
+function claimStatusLabel(claim: ClaimRow) {
+  if (claim.status === "checked" && claim.support) {
+    return supportCopy[claim.support]
+  }
+  return statusFallback[claim.status]
+}
+
+function claimDetail(claim: ClaimRow) {
+  if (claim.explanation) return claim.explanation
+  if (claim.status === "needs_context") {
+    return "Todavía no identifica con precisión qué debe contrastarse."
+  }
+  return "Buscando fuentes que la sostengan o la contradigan."
+}
 
 const statusCopy: Record<ThailyStatus, string> = {
   idle: "Listo para resolver tus dudas",
@@ -48,6 +77,14 @@ const statusCopy: Record<ThailyStatus, string> = {
 
 export function ThailyPanel() {
   const reduceMotion = useReducedMotion()
+  // ponytail: la pantalla sigue la sesión en vivo más reciente. Cuando haya varias a la vez,
+  // el sessionId entra por prop o por la ruta.
+  const liveSessions = useQuery(api.sessions.listLive)
+  const sessionId = liveSessions?.[0]?._id
+  const claims = useQuery(
+    api.claims.listBySession,
+    sessionId ? { sessionId } : "skip",
+  ) as ClaimRow[] | undefined
   const [tab, setTab] = useState("claims")
   const [status, setStatus] = useState<ThailyStatus>("idle")
   const [input, setInput] = useState("")
@@ -118,7 +155,7 @@ export function ThailyPanel() {
           <TabsTrigger value="claims" className="panel-tab">
             <FileCheck2 aria-hidden="true" />
             Claims
-            <span className="tab-count">{claims.length}</span>
+            <span className="tab-count">{claims?.length ?? 0}</span>
           </TabsTrigger>
           <TabsTrigger value="thaily" className="panel-tab">
             <ThailyAgent status={status} size={22} className="tab-agent" />
@@ -139,20 +176,30 @@ export function ThailyPanel() {
                 <p className="panel-kicker">En tiempo real</p>
                 <h2>Afirmaciones detectadas</h2>
               </div>
-              <span className="live-indicator"><i /> Escuchando</span>
+              <span className="live-indicator">
+                <i /> {sessionId ? "Escuchando" : "Sin sesión en vivo"}
+              </span>
             </div>
 
             <div className="claim-list">
-              {claims.map((claim) => (
-                <button className="claim-row" type="button" key={claim.time}>
-                  <span className="claim-time">{claim.time}</span>
-                  <span className="claim-copy">
-                    <strong>{claim.title}</strong>
-                    <small>{claim.detail}</small>
-                  </span>
-                  <span className="claim-status">{claim.status}</span>
-                </button>
-              ))}
+              {claims === undefined ? (
+                <p className="claim-empty">Conectando con la sesión…</p>
+              ) : claims.length === 0 ? (
+                <p className="claim-empty">
+                  Todavía no se detectaron afirmaciones en lo que se dijo.
+                </p>
+              ) : (
+                claims.map((claim) => (
+                  <button className="claim-row" type="button" key={claim._id}>
+                    <span className="claim-time">{formatTime(claim.atMs)}</span>
+                    <span className="claim-copy">
+                      <strong>{claim.text}</strong>
+                      <small>{claimDetail(claim)}</small>
+                    </span>
+                    <span className="claim-status">{claimStatusLabel(claim)}</span>
+                  </button>
+                ))
+              )}
             </div>
           </motion.div>
         </TabsContent>
