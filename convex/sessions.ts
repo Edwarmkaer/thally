@@ -45,5 +45,7 @@ export const listLive = query({
     ctx.db
       .query("sessions")
       .withIndex("by_status", (q) => q.eq("status", "live"))
+      // La más reciente primero: la pantalla sigue la sesión que está corriendo ahora.
+      .order("desc")
       .collect(),
 });
