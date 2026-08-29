@@ -183,4 +183,57 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/agent/create-issue",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authError = authorize(request);
+    if (authError !== null) {
+      return authError;
+    }
+
+    const body = await readJsonObject(request);
+    if (body instanceof Response) {
+      return body;
+    }
+
+    const claimId = body.claimId;
+    const title = body.title;
+    const issueBody = body.body ?? "";
+    const labels = body.labels;
+
+    if (typeof claimId !== "string" || claimId === "") {
+      return invalidPayload();
+    }
+    if (typeof title !== "string" || title.trim() === "") {
+      return invalidPayload();
+    }
+    if (typeof issueBody !== "string") {
+      return invalidPayload();
+    }
+    if (
+      labels !== undefined &&
+      (!Array.isArray(labels) || labels.some((l) => typeof l !== "string"))
+    ) {
+      return invalidPayload();
+    }
+
+    try {
+      const result = await ctx.runAction(api.issues.createForClaim, {
+        claimId: claimId as Id<"claims">,
+        title,
+        body: issueBody,
+        ...(labels === undefined ? {} : { labels: labels as string[] }),
+      });
+
+      return jsonResponse({ ok: true, ...result }, 200);
+    } catch (error) {
+      if (isClientMutationError(error)) {
+        return invalidPayload();
+      }
+      return internalError();
+    }
+  }),
+});
+
 export default http;
