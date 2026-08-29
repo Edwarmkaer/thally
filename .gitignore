@@ -56,3 +56,6 @@ video.mp4
 
 # log del dev server (se coló en un commit)
 dev.log
+
+# Clerk — keyless.json trae un claimToken
+.clerk/
