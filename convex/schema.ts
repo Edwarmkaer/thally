@@ -17,6 +17,9 @@ export default defineSchema({
   transcripts: defineTable({
     sessionId: v.id("sessions"),
     text: v.string(),
+    // Lo mismo dicho en claro, para seguir el contenido mientras ocurre. Opcional: el
+    // fragmento se escribe apenas se transcribe, y el parafraseo llega después.
+    paraphrase: v.optional(v.string()),
     startTime: v.number(),
     endTime: v.optional(v.number()),
   }).index("by_sessionId", ["sessionId"]),

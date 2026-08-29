@@ -52,3 +52,9 @@ export const listBySession = query({
     return transcripts;
   },
 });
+
+export const attachParaphrase = mutation({
+  args: { transcriptId: v.id("transcripts"), paraphrase: v.string() },
+  handler: (ctx, args) =>
+    ctx.db.patch(args.transcriptId, { paraphrase: args.paraphrase }),
+});
