@@ -1,4 +1,9 @@
+"use client"
+
 import { MonitorPlay, Pause } from "lucide-react"
+import { useQuery } from "convex/react"
+
+import { api } from "@/convex/_generated/api"
 
 import { SiteNavbar } from "@/components/site/navbar"
 import { ThailyPanel } from "@/components/thaily/thaily-panel"
@@ -24,6 +29,10 @@ const backgroundSquares: Array<[number, number]> = [
 ]
 
 export function ThallyWorkspace() {
+  // La sesión en vivo más reciente: la misma que siguen la transcripción y el panel.
+  const liveSessions = useQuery(api.sessions.listLive)
+  const session = liveSessions?.[0]
+
   return (
     <>
       <SiteNavbar />
@@ -34,9 +43,15 @@ export function ThallyWorkspace() {
           <section className="content-column" aria-label="Contenido en vivo">
             <div className="content-heading">
               <div>
-                <p className="session-label"><i /> Sesión en vivo</p>
-                <h1>Construyendo un agente de voz en 20 minutos</h1>
-                <span>Marta Ibáñez · build in public · 1,284 viendo</span>
+                <p className="session-label">
+                  <i /> {session ? "Sesión en vivo" : "Sin sesión en vivo"}
+                </p>
+                <h1>{session?.title ?? "Esperando una sesión"}</h1>
+                <span>
+                  {session
+                    ? `Escuchando desde las ${new Date(session.startedAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}`
+                    : "Arranca una con `bun run session`"}
+                </span>
               </div>
             </div>
 
