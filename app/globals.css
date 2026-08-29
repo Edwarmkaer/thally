@@ -368,6 +368,11 @@ button:focus-visible, input:focus-visible {
   }
 }
 
+.claim-empty {
+  padding: 18px 4px;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
 /* --- Esquema (Excalidraw) --- */
 .diagram-view { display: flex; flex-direction: column; min-height: 0; height: 100%; gap: 10px; padding-bottom: 12px; }
 .diagram-switch { display: flex; gap: 6px; padding: 0 12px; flex-wrap: wrap; }

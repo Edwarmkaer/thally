@@ -4,6 +4,9 @@ import { FormEvent, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Mic, Send, Sparkles } from "lucide-react"
 
+import { useQuery } from "convex/react"
+
+import { api } from "@/convex/_generated/api"
 import { DiagramPanel } from "@/components/diagram/diagram-panel"
 import { ThailyAgent, type ThailyStatus } from "@/components/thaily/thaily-agent"
 import { Button } from "@/components/ui/button"
@@ -19,26 +22,52 @@ type Message = {
   text: string
 }
 
-const claims = [
-  {
-    time: "00:34",
-    title: "Los agentes de voz redujeron sus costos durante el último año",
-    detail: "Buscando una fuente primaria que sostenga el porcentaje mencionado.",
-    status: "Verificando",
-  },
-  {
-    time: "00:24",
-    title: "ElevenLabs Scribe v2 Realtime",
-    detail: "Producto mencionado durante la explicación del flujo de transcripción.",
-    status: "2 fuentes",
-  },
-  {
-    time: "00:15",
-    title: "Convex",
-    detail: "Plataforma utilizada como backend reactivo durante la demostración.",
-    status: "Verificado",
-  },
-]
+/** Offset en ms desde el inicio de la sesión → mm:ss. */
+function formatTime(atMs: number) {
+  const totalSeconds = Math.max(0, Math.floor(atMs / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
+
+// El copy sigue CONTEXT.md: una verificación acompaña una decisión, no declara una verdad.
+const supportCopy = {
+  supported: "Se sostiene",
+  disputed: "En disputa",
+  unsupported: "Sin respaldo",
+} as const
+
+const statusFallback = {
+  detected: "Detectada",
+  searching: "Buscando evidencia",
+  analyzing: "Analizando fuentes",
+  needs_context: "Necesita contexto",
+  checked: "Verificada",
+} as const
+
+type ClaimRow = {
+  _id: string
+  atMs: number
+  text: string
+  status: keyof typeof statusFallback
+  support?: keyof typeof supportCopy
+  explanation?: string
+}
+
+function claimStatusLabel(claim: ClaimRow) {
+  if (claim.status === "checked" && claim.support) {
+    return supportCopy[claim.support]
+  }
+  return statusFallback[claim.status]
+}
+
+function claimDetail(claim: ClaimRow) {
+  if (claim.explanation) return claim.explanation
+  if (claim.status === "needs_context") {
+    return "Todavía no identifica con precisión qué debe contrastarse."
+  }
+  return "Buscando fuentes que la sostengan o la contradigan."
+}
 
 const statusCopy: Record<ThailyStatus, string> = {
   idle: "Listo para resolver tus dudas",
@@ -51,6 +80,14 @@ const statusCopy: Record<ThailyStatus, string> = {
 
 export function ThailyPanel() {
   const reduceMotion = useReducedMotion()
+  // ponytail: la pantalla sigue la sesión en vivo más reciente. Cuando haya varias a la vez,
+  // el sessionId entra por prop o por la ruta.
+  const liveSessions = useQuery(api.sessions.listLive)
+  const sessionId = liveSessions?.[0]?._id
+  const claims = useQuery(
+    api.claims.listBySession,
+    sessionId ? { sessionId } : "skip",
+  ) as ClaimRow[] | undefined
   const [tab, setTab] = useState("claims")
   const [hasAgentNotice, setHasAgentNotice] = useState(true)
   const [status, setStatus] = useState<ThailyStatus>("idle")
@@ -168,33 +205,43 @@ export function ThailyPanel() {
                 <p className="panel-kicker">Detección en tiempo real</p>
                 <h2>Afirmaciones detectadas</h2>
               </div>
-              <span className="live-indicator"><i /> Escuchando</span>
+              <span className="live-indicator">
+                <i /> {sessionId ? "Escuchando" : "Sin sesión en vivo"}
+              </span>
             </div>
 
             <div className="claim-list" ref={claimsListRef}>
-              {claims.map((claim, index) => (
-                <motion.button
-                  className="claim-row"
-                  type="button"
-                  key={claim.time}
-                  initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.2,
-                    delay: reduceMotion ? 0 : index * 0.05,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
-                  <span className="claim-copy">
-                    <span className="claim-meta">
-                      <span className="claim-time">{claim.time}</span>
-                      <span className="claim-status">{claim.status}</span>
+              {claims === undefined ? (
+                <p className="claim-empty">Conectando con la sesión…</p>
+              ) : claims.length === 0 ? (
+                <p className="claim-empty">
+                  Todavía no se detectaron afirmaciones en lo que se dijo.
+                </p>
+              ) : (
+                claims.map((claim, index) => (
+                  <motion.button
+                    className="claim-row"
+                    type="button"
+                    key={claim._id}
+                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.2,
+                      delay: reduceMotion ? 0 : index * 0.05,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                  >
+                    <span className="claim-copy">
+                      <span className="claim-meta">
+                        <span className="claim-time">{formatTime(claim.atMs)}</span>
+                        <span className="claim-status">{claimStatusLabel(claim)}</span>
+                      </span>
+                      <strong>{claim.text}</strong>
+                      <small>{claimDetail(claim)}</small>
                     </span>
-                    <strong>{claim.title}</strong>
-                    <small>{claim.detail}</small>
-                  </span>
-                </motion.button>
-              ))}
+                  </motion.button>
+                ))
+              )}
             </div>
           </motion.div>
         </TabsContent>
