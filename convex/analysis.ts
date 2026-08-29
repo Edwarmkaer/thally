@@ -172,3 +172,54 @@ export const evaluateClaim = action({
     return assessment.support;
   },
 });
+
+// --- Parafraseo --------------------------------------------------------------
+
+const Paraphrase = z.object({
+  paraphrase: z
+    .string()
+    .describe(
+      "El mismo contenido dicho en claro, en una o dos frases. Nada de contenido nuevo.",
+    ),
+});
+
+const PARAFRASEO_SYSTEM = `Reformulas fragmentos de contenido hablado para alguien que lo está siguiendo en vivo y quiere entenderlo mejor.
+
+Di lo mismo en claro: deshaz las muletillas y las frases a medias, explicita el sujeto cuando se perdió, y desarma la jerga innecesaria. Una o dos frases.
+
+No agregues nada que el hablante no haya dicho, no expliques conceptos que no mencionó y no opines sobre lo dicho. Si el fragmento ya es claro, devuélvelo casi igual: parafrasear de más es peor que no parafrasear.
+
+Escribe en el mismo idioma del fragmento.`;
+
+/** Reformula un fragmento en claro, para seguir el contenido mientras ocurre. */
+export const paraphrase = action({
+  args: { transcriptId: v.id("transcripts"), text: v.string() },
+  handler: async (ctx, args): Promise<string> => {
+    const text = args.text.trim();
+    if (text === "") {
+      throw new Error("text cannot be empty");
+    }
+
+    const response = await client().messages.parse({
+      model: "claude-opus-5",
+      max_tokens: 16000,
+      system: PARAFRASEO_SYSTEM,
+      thinking: { type: "adaptive" },
+      // Va detrás del hablante: la latencia importa más que el matiz.
+      output_config: { effort: "low", format: zodOutputFormat(Paraphrase) },
+      messages: [{ role: "user", content: text }],
+    });
+
+    const result = response.parsed_output?.paraphrase?.trim();
+    if (result === undefined || result === "") {
+      throw new Error("could not parse the paraphrase");
+    }
+
+    await ctx.runMutation(api.transcripts.attachParaphrase, {
+      transcriptId: args.transcriptId,
+      paraphrase: result,
+    });
+
+    return result;
+  },
+});
