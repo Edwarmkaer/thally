@@ -74,12 +74,11 @@ export const listBySession = query({
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    const claims = await ctx.db
+    // by_sessionId es ["sessionId", "atMs"], así que el índice ya las entrega en el orden
+    // en que se dijeron; ordenarlas de nuevo en memoria no cambia nada.
+    return await ctx.db
       .query("claims")
       .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
       .collect();
-
-    claims.sort((a, b) => a.atMs - b.atMs);
-    return claims;
   },
 });

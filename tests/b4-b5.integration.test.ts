@@ -17,7 +17,13 @@ type ClaimRow = {
 };
 
 function loadDotEnvLocal() {
-  const contents = readFileSync(resolve(root, ".env.local"), "utf8");
+  let contents: string;
+  try {
+    contents = readFileSync(resolve(root, ".env.local"), "utf8");
+  } catch {
+    // Sin .env.local no hay deployment contra el cual correr: el describe se salta.
+    return;
+  }
   for (const rawLine of contents.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (line === "" || line.startsWith("#")) {
@@ -148,12 +154,18 @@ async function postAgent(
   return { status: response.status, json };
 }
 
-describe("B4 realtime + B5 HTTP", () => {
+// Estas pruebas hablan con un deployment real de Convex. Sin credenciales se saltan en vez
+// de reventar: `bun run test` tiene que quedar verde en un checkout recién clonado.
+loadDotEnvLocal();
+const hasDeployment =
+  (process.env.CONVEX_URL ?? "") !== "" &&
+  (process.env.CONVEX_SITE_URL ?? "") !== "";
+
+describe.skipIf(!hasDeployment)("B4 realtime + B5 HTTP", () => {
   let webhookSecret: string;
   const clients: ConvexClient[] = [];
 
   beforeAll(() => {
-    loadDotEnvLocal();
     webhookSecret = loadWebhookSecret();
   });
 
