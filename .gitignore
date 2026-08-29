@@ -52,3 +52,7 @@ obsidian/.trash/
 # material de demo (el clip se comparte fuera del repo)
 video.mp4
 .env.local
+.gstack/
+
+# log del dev server (se coló en un commit)
+dev.log
