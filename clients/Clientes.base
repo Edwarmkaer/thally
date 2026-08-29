@@ -1,0 +1,34 @@
+filters:
+  and:
+    - file.inFolder("clients")
+    - file.name != "index"
+    - file.name != "Clientes"
+    - file.name != "tracking-table"
+properties:
+  status:
+    displayName: Estado
+  industry:
+    displayName: Industria
+  updated:
+    displayName: Actualizado
+views:
+  - type: table
+    name: Activos
+    filters:
+      - 'status == "active"'
+    order:
+      - file.name
+      - industry
+      - domain
+      - updated
+
+  - type: table
+    name: Todos
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - file.name
+      - status
+      - industry
+      - updated

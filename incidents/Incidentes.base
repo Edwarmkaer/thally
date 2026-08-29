@@ -1,0 +1,55 @@
+filters:
+  and:
+    - file.inFolder("incidents")
+    - file.name != "index"
+    - file.name != "Incidentes"
+properties:
+  date:
+    displayName: Fecha
+  severity:
+    displayName: Sev
+  domain:
+    displayName: Dominio
+  detected_by:
+    displayName: Detectado por
+views:
+  - type: table
+    name: Recientes
+    limit: 40
+    order:
+      - date
+      - file.name
+      - severity
+      - domain
+
+  - type: table
+    name: Por severidad
+    groupBy:
+      property: severity
+      direction: ASC
+    order:
+      - date
+      - file.name
+      - domain
+
+  - type: table
+    name: Por dominio
+    groupBy:
+      property: domain
+      direction: ASC
+    order:
+      - date
+      - file.name
+      - severity
+
+  - type: table
+    name: Graves
+    filters:
+      or:
+        - 'severity == "critica"'
+        - 'severity == "alta"'
+    order:
+      - date
+      - file.name
+      - severity
+      - domain

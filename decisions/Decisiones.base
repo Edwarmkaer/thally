@@ -1,0 +1,40 @@
+filters:
+  and:
+    - file.inFolder("decisions")
+    - file.name != "index"
+    - file.name != "Decisiones"
+properties:
+  date:
+    displayName: Fecha
+  status:
+    displayName: Estado
+  domain:
+    displayName: Dominio
+views:
+  - type: table
+    name: Vigentes
+    filters:
+      - 'status == "vigente"'
+    order:
+      - date
+      - file.name
+      - domain
+
+  - type: table
+    name: ADRs
+    filters:
+      - file.inFolder("decisions/adrs")
+    order:
+      - number
+      - file.name
+      - status
+
+  - type: table
+    name: Todas
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - date
+      - file.name
+      - domain

@@ -1,0 +1,65 @@
+filters:
+  and:
+    - file.inFolder("prds")
+    - file.name != "index"
+    - file.name != "PRDs"
+properties:
+  number:
+    displayName: "#"
+  status:
+    displayName: Estado
+  priority:
+    displayName: Prio
+  status_detail:
+    displayName: Detalle
+views:
+  - type: table
+    name: En curso
+    filters:
+      or:
+        - 'status == "in_progress"'
+        - 'status == "staging"'
+    order:
+      - number
+      - file.name
+      - status
+      - priority
+      - status_detail
+
+  - type: table
+    name: Por promover
+    filters:
+      - 'status == "staging"'
+    order:
+      - number
+      - file.name
+      - status_detail
+
+  - type: table
+    name: Backlog
+    filters:
+      - 'status == "draft"'
+    order:
+      - number
+      - file.name
+      - priority
+
+  - type: table
+    name: Shipped
+    filters:
+      - 'status == "shipped"'
+    order:
+      - number
+      - file.name
+      - date
+
+  - type: table
+    name: Todos
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - number
+      - file.name
+      - status
+      - priority

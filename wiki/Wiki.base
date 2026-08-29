@@ -1,0 +1,39 @@
+filters:
+  and:
+    - file.inFolder("wiki")
+    - file.name != "index"
+    - file.name != "Wiki"
+properties:
+  domain:
+    displayName: Dominio
+  topic:
+    displayName: Tema
+  updated:
+    displayName: Actualizado
+views:
+  - type: table
+    name: Todas
+    order:
+      - file.name
+      - domain
+      - topic
+      - updated
+
+  - type: table
+    name: Por dominio
+    groupBy:
+      property: domain
+      direction: ASC
+    order:
+      - file.name
+      - topic
+      - updated
+
+  - type: table
+    name: Sin clasificar
+    filters:
+      - "!file.hasProperty(\"domain\")"
+    order:
+      - file.name
+      - topic
+      - updated
