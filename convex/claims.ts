@@ -6,8 +6,7 @@ export const registerClaim = mutation({
     sessionId: v.id("sessions"),
     transcriptId: v.optional(v.id("transcripts")),
     text: v.string(),
-    quote: v.optional(v.string()),
-    atMs: v.number(),
+    timestamp: v.number(),
   },
   handler: async (ctx, args) => {
     const text = args.text.trim();
@@ -15,16 +14,15 @@ export const registerClaim = mutation({
       throw new Error("text cannot be empty");
     }
 
-    if (args.atMs < 0) {
-      throw new Error("atMs cannot be negative");
+    if (args.timestamp < 0) {
+      throw new Error("timestamp cannot be negative");
     }
 
     const claimId = await ctx.db.insert("claims", {
       sessionId: args.sessionId,
       transcriptId: args.transcriptId,
       text,
-      quote: args.quote,
-      atMs: args.atMs,
+      timestamp: args.timestamp,
       status: "searching",
     });
 
@@ -32,26 +30,13 @@ export const registerClaim = mutation({
   },
 });
 
-/** La afirmación no identifica con suficiente precisión qué debe contrastarse (CONTEXT.md). */
-export const markNeedsContext = mutation({
-  args: { claimId: v.id("claims") },
-  handler: async (ctx, args) => {
-    const claim = await ctx.db.get(args.claimId);
-    if (claim === null) {
-      throw new Error("claim not found");
-    }
-
-    await ctx.db.patch(args.claimId, { status: "needs_context" });
-  },
-});
-
 export const completeClaim = mutation({
   args: {
     claimId: v.id("claims"),
-    support: v.union(
+    verdict: v.union(
       v.literal("supported"),
       v.literal("disputed"),
-      v.literal("unsupported"),
+      v.literal("insufficient_evidence"),
     ),
     explanation: v.string(),
   },
@@ -62,8 +47,8 @@ export const completeClaim = mutation({
     }
 
     await ctx.db.patch(args.claimId, {
-      status: "checked",
-      support: args.support,
+      status: "completed",
+      verdict: args.verdict,
       explanation: args.explanation,
     });
   },
@@ -79,7 +64,7 @@ export const listBySession = query({
       .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
       .collect();
 
-    claims.sort((a, b) => a.atMs - b.atMs);
+    claims.sort((a, b) => a.timestamp - b.timestamp);
     return claims;
   },
 });

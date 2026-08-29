@@ -10,7 +10,8 @@
     "convex": "convex dev",
     "test": "vitest",
     "test:once": "vitest run",
-    "test:scribe-realtime": "tsx scripts/test-scribe-realtime.ts"
+    "test:scribe-realtime": "tsx scripts/test-scribe-realtime.ts",
+    "web": "tsx scripts/web-realtime.ts"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.65.0",

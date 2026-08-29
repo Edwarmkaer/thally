@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fast Checker</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 760px;
+        margin: 24px auto;
+        padding: 0 16px;
+        line-height: 1.4;
+      }
+      video {
+        width: 100%;
+        background: #111;
+      }
+      .live {
+        font-style: italic;
+        opacity: 0.75;
+        min-height: 1.4em;
+      }
+      .confirmed {
+        min-height: 1.4em;
+        white-space: pre-wrap;
+      }
+      button {
+        font-size: 16px;
+        padding: 8px 16px;
+        margin: 12px 0;
+      }
+      .dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #999;
+      }
+      .dot.on {
+        background: #1a7f37;
+      }
+      .dot.err {
+        background: #b42318;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>FAST CHECKER</h1>
+    <video id="video" src="/video.mp4" controls playsinline></video>
+    <p>
+      Status: <span class="dot" id="dot"></span>
+      <span id="status">Idle</span>
+    </p>
+    <h2>LIVE TRANSCRIPT</h2>
+    <p><strong>Confirmed:</strong></p>
+    <p class="confirmed" id="confirmed"></p>
+    <p><strong>Live:</strong></p>
+    <p class="live" id="live"></p>
+    <p>
+      Latency:<br />
+      First partial: <span id="firstPartial">—</span><br />
+      First committed: <span id="firstCommitted">—</span>
+    </p>
+    <button id="start" type="button">START REALTIME TEST</button>
+    <p id="error"></p>
+    <script>
+      const video = document.getElementById("video");
+      const statusEl = document.getElementById("status");
+      const dot = document.getElementById("dot");
+      const confirmedEl = document.getElementById("confirmed");
+      const liveEl = document.getElementById("live");
+      const firstPartialEl = document.getElementById("firstPartial");
+      const firstCommittedEl = document.getElementById("firstCommitted");
+      const errorEl = document.getElementById("error");
+      const startBtn = document.getElementById("start");
+
+      let source = null;
+      let lastCommitted = "";
+
+      function setStatus(label, kind) {
+        statusEl.textContent = label;
+        dot.className = "dot" + (kind === "err" ? " err" : kind === "on" ? " on" : "");
+      }
+
+      function stopSource() {
+        if (source) {
+          source.close();
+          source = null;
+        }
+      }
+
+      startBtn.addEventListener("click", () => {
+        stopSource();
+        lastCommitted = "";
+        confirmedEl.textContent = "";
+        liveEl.textContent = "";
+        firstPartialEl.textContent = "—";
+        firstCommittedEl.textContent = "—";
+        errorEl.textContent = "";
+        setStatus("Connecting", "on");
+        video.currentTime = 0;
+        video.play().catch(() => {});
+
+        source = new EventSource("/api/realtime-transcription");
+
+        source.addEventListener("session", () => {
+          setStatus("Connected / Processing", "on");
+        });
+
+        source.addEventListener("partial", (event) => {
+          const data = JSON.parse(event.data);
+          liveEl.textContent = data.text || "";
+        });
+
+        source.addEventListener("committed", (event) => {
+          const data = JSON.parse(event.data);
+          const text = (data.text || "").trim();
+          if (!text || text === lastCommitted) {
+            liveEl.textContent = "";
+            return;
+          }
+          lastCommitted = text;
+          confirmedEl.textContent = confirmedEl.textContent
+            ? confirmedEl.textContent + "\n" + text
+            : text;
+          liveEl.textContent = "";
+        });
+
+        source.addEventListener("metrics", (event) => {
+          const data = JSON.parse(event.data);
+          if (data.firstPartialMs != null) {
+            firstPartialEl.textContent = data.firstPartialMs + " ms";
+          }
+          if (data.firstCommittedMs != null) {
+            firstCommittedEl.textContent = data.firstCommittedMs + " ms";
+          }
+        });
+
+        source.addEventListener("finished", () => {
+          setStatus("Finished", "on");
+          liveEl.textContent = "";
+          stopSource();
+        });
+
+        source.addEventListener("error", (event) => {
+          if (event instanceof MessageEvent && event.data) {
+            try {
+              const data = JSON.parse(event.data);
+              errorEl.textContent = data.message || "Could not connect to Scribe Realtime.";
+            } catch {
+              errorEl.textContent = "Could not connect to Scribe Realtime.";
+            }
+            setStatus("ERROR", "err");
+            stopSource();
+            return;
+          }
+          if (source && source.readyState === EventSource.CLOSED) {
+            setStatus("ERROR", "err");
+            errorEl.textContent = "Could not connect to Scribe Realtime.";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
