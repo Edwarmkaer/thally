@@ -5,6 +5,7 @@ import { useReducedMotion } from "motion/react"
 
 import { NOTIF_BLUE, type DotRender } from "@/src/vendor/bloub/decor"
 import { BotEngine, type BotFrame } from "@/src/vendor/bloub/engine"
+import { EXPRESSION_BY_ID } from "@/src/vendor/bloub/expressions"
 import type { StateId } from "@/src/vendor/bloub/states"
 
 export type ThailyStatus =
@@ -23,10 +24,11 @@ type ThailyAgentProps = {
 
 const RADIUS = 100
 const VIEWBOX_HALF = 158
+const IDLE_EXPRESSIONS = ["attentif", "curieux", "heureux", "neutre"] as const
 
 const stateByStatus: Record<ThailyStatus, StateId> = {
   idle: "idle",
-  listening: "orbit",
+  listening: "idle",
   thinking: "thinking",
   answering: "notify",
   success: "wink",
@@ -85,6 +87,32 @@ export function ThailyAgent({
     })
     return () => cancelAnimationFrame(animationFrame)
   }, [engine, status])
+
+  useEffect(() => {
+    if (status === "listening") {
+      const attentive = EXPRESSION_BY_ID.get("attentif")
+      if (attentive) engine.setExpression(attentive, clockRef.current)
+      return
+    }
+
+    if (status !== "idle") {
+      engine.setExpression(null, clockRef.current)
+      return
+    }
+
+    let expressionIndex = 0
+    const showNextExpression = () => {
+      const expression = EXPRESSION_BY_ID.get(IDLE_EXPRESSIONS[expressionIndex])
+      if (expression) engine.setExpression(expression, clockRef.current)
+      expressionIndex = (expressionIndex + 1) % IDLE_EXPRESSIONS.length
+    }
+
+    showNextExpression()
+    if (reduceMotion) return
+
+    const interval = window.setInterval(showNextExpression, 2200)
+    return () => window.clearInterval(interval)
+  }, [engine, reduceMotion, status])
 
   useEffect(() => {
     if (reduceMotion) {

@@ -1,73 +1,85 @@
-import { Pause, Radio, Volume2 } from "lucide-react"
+import Link from "next/link"
+import { MonitorPlay, Pause } from "lucide-react"
 
 import { ThailyPanel } from "@/components/thaily/thaily-panel"
+import { LiveTranscript } from "@/components/transcript/live-transcript"
 import { Button } from "@/components/ui/button"
+import { GridPattern } from "@/components/ui/grid-pattern"
+import { Slider } from "@/components/ui/slider"
+
+const backgroundSquares: Array<[number, number]> = [
+  [4, 4],
+  [5, 1],
+  [8, 2],
+  [5, 3],
+  [5, 5],
+  [10, 10],
+  [12, 15],
+  [15, 10],
+  [10, 15],
+  [18, 4],
+  [22, 12],
+  [27, 6],
+]
 
 export function ThallyWorkspace() {
   return (
-    <main className="workspace-shell">
-      <header className="workspace-header">
-        <div className="brand-block">
-          <span className="brand-mark" aria-hidden="true">T</span>
-          <div>
-            <strong>Thally</strong>
-            <span>Verificación de contenido en vivo</span>
-          </div>
-        </div>
-        <div className="session-status">
-          <span className="connection-status"><i /> Transcripción activa</span>
-          <span className="live-badge"><Radio aria-hidden="true" /> En vivo</span>
-        </div>
+    <>
+      <header className="app-navbar">
+        <nav aria-label="Navegación principal">
+          <Link href="/" className="brand-logo" aria-label="Thally, inicio">
+            <span className="brand-letter" aria-hidden="true">T</span>
+            <span className="brand-wordmark">Thally</span>
+            <span className="brand-dash" aria-hidden="true" />
+          </Link>
+        </nav>
       </header>
 
-      <div className="workspace-grid">
-        <section className="content-column" aria-label="Contenido en vivo">
-          <div className="content-heading">
-            <div>
-              <p>Sesión actual</p>
-              <h1>Construyendo un agente de voz en 20 minutos</h1>
-              <span>Marta Ibáñez · build in public · 1,284 viendo</span>
+      <main className="workspace-shell">
+        <GridPattern squares={backgroundSquares} className="workspace-pattern" />
+        <div className="workspace-grid">
+          <section className="content-column" aria-label="Contenido en vivo">
+            <div className="content-heading">
+              <div>
+                <p className="session-label"><i /> Sesión en vivo</p>
+                <h1>Construyendo un agente de voz en 20 minutos</h1>
+                <span>Marta Ibáñez · build in public · 1,284 viendo</span>
+              </div>
             </div>
-            <Button variant="outline" size="icon-lg" aria-label="Controlar volumen">
-              <Volume2 aria-hidden="true" />
-            </Button>
-          </div>
 
-          <div className="video-frame">
-            <div className="video-signal" aria-hidden="true" />
-            <span className="video-live">Live</span>
-            <div className="video-placeholder">
-              <span>Señal de video</span>
-              <small>El reproductor se conectará en la siguiente etapa</small>
+            <div className="video-window">
+              <div className="video-window-bar">
+                <span><MonitorPlay aria-hidden="true" /> Contenido en vivo</span>
+                <small>16:9</small>
+              </div>
+              <div className="video-frame">
+                <span className="video-live">Live</span>
+                <div className="video-placeholder">
+                  <MonitorPlay aria-hidden="true" />
+                  <span>Señal de video</span>
+                  <small>El reproductor se conectará en la siguiente etapa</small>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="player-controls">
-            <Button><Pause aria-hidden="true" /> Pausar</Button>
-            <div className="timeline" aria-label="Progreso del contenido">
-              <span className="timeline-fill" />
-              <i style={{ left: "21%" }} />
-              <i style={{ left: "47%" }} />
-              <i style={{ left: "72%" }} />
+            <div className="player-controls">
+              <Button><Pause aria-hidden="true" /> Pausar</Button>
+              <Slider
+                defaultValue={[47]}
+                max={100}
+                step={1}
+                className="video-scrubber"
+                aria-label="Progreso del contenido"
+              />
+              <time>00:34 / 01:12</time>
             </div>
-            <time>00:34 / 01:12</time>
-          </div>
 
-          <section className="transcript" aria-labelledby="transcript-title">
-            <div className="transcript-label">
-              <span id="transcript-title">Transcripción</span>
-              <i />
-              <small>Scribe v2 realtime</small>
-            </div>
-            <p>
-              Y ojo con esto: los agentes de voz redujeron sus costos durante el último año,
-              mientras la latencia de la transcripción sigue bajando.
-            </p>
+            <LiveTranscript />
           </section>
-        </section>
 
-        <ThailyPanel />
-      </div>
-    </main>
+          <ThailyPanel />
+        </div>
+      </main>
+    </>
   )
 }
